@@ -12,7 +12,7 @@ function readBodyLimitBytes() {
   return Math.floor(mb * 1024 * 1024);
 }
 
-const app = Fastify({
+const app = Fastify({ cors: true,
   logger: true,
   bodyLimit: readBodyLimitBytes()
 });
