@@ -376,7 +376,6 @@ function getLastUserTime(messages) {
   }
   return null;
 }
-}
 
 function stripPosition(messages) {
   return messages.map(({ position, ...rest }) => rest);
