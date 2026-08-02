@@ -352,20 +352,7 @@ function parseTimelineTimestamp(value) {
 }
 
 function getLastUserTime(messages) {
-  const TIMESTAMPS_PATH = path.join(__dirname, "message_timestamps.json");
-  try {
-    if (fs.existsSync(TIMESTAMPS_PATH)) {
-      const timestamps = JSON.parse(fs.readFileSync(TIMESTAMPS_PATH, "utf-8"));
-      const reversed = [...messages].reverse();
-      for (const msg of reversed) {
-        if (msg.role === "user") {
-          const content = normalizeContentToText(msg.content);
-          const ts = timestamps["user::" + content];
-          if (ts) return new Date(ts);
-        }
-      }
-    }
-  } catch {}
+  // 先按原逻辑找 user 消息的时间戳
   const reversed = [...messages].reverse();
   for (const msg of reversed) {
     if (msg.role === "user") {
@@ -373,6 +360,12 @@ function getLastUserTime(messages) {
       const parsed = parseTimelineTimestamp(content);
       if (parsed) return parsed;
     }
+  }
+  // 回退：从整个 timeline 里找最后一条带时间戳的消息（含 system）
+  for (const msg of reversed) {
+    const content = normalizeContentToText(msg.content);
+    const parsed = parseTimelineTimestamp(content);
+    if (parsed) return parsed;
   }
   return null;
 }
