@@ -352,17 +352,30 @@ function parseTimelineTimestamp(value) {
 }
 
 function getLastUserTime(messages) {
+  const TIMESTAMPS_PATH = path.join(__dirname, "message_timestamps.json");
+  try {
+    if (fs.existsSync(TIMESTAMPS_PATH)) {
+      const timestamps = JSON.parse(fs.readFileSync(TIMESTAMPS_PATH, "utf-8"));
+      const reversed = [...messages].reverse();
+      for (const msg of reversed) {
+        if (msg.role === "user") {
+          const content = normalizeContentToText(msg.content);
+          const ts = timestamps["user::" + content];
+          if (ts) return new Date(ts);
+        }
+      }
+    }
+  } catch {}
   const reversed = [...messages].reverse();
   for (const msg of reversed) {
     if (msg.role === "user") {
       const content = normalizeContentToText(msg.content);
-      // 批注 2026-07-15：兼容 Kelivo 时间前缀 "YYYY-MM-DDHH:mm"；
-      // 旧的 "YYYY-MM-DD HH:mm" 仍然可用，避免无空格时间导致 wake-up 误判没有用户时间。
       const parsed = parseTimelineTimestamp(content);
       if (parsed) return parsed;
     }
   }
   return null;
+}
 }
 
 function stripPosition(messages) {
