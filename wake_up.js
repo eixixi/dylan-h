@@ -362,23 +362,18 @@ function parseTimelineTimestamp(value) {
 }
 
 function getLastUserTime(messages) {
-  // 先按原逻辑找 user 消息的时间戳
+  // 直接找 system 消息的时间戳
   const reversed = [...messages].reverse();
   for (const msg of reversed) {
-    if (msg.role === "user") {
+    if (msg.role === "system") {
       const content = normalizeContentToText(msg.content);
       const parsed = parseTimelineTimestamp(content);
       if (parsed) return parsed;
     }
   }
-  // 回退：从整个 timeline 里找最后一条带时间戳的消息（含 system）
-  for (const msg of reversed) {
-    const content = normalizeContentToText(msg.content);
-    const parsed = parseTimelineTimestamp(content);
-    if (parsed) return parsed;
-  }
   return null;
 }
+
 
 function stripPosition(messages) {
   return messages.map(({ position, ...rest }) => rest);
