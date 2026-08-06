@@ -361,12 +361,30 @@ function parseTimelineTimestamp(value) {
     return Number.isNaN(result.getTime()) ? null : result;
 }
 
+const TIMESTAMPS_PATH = path.join(__dirname, "message_timestamps.json");
+
+function loadTimestamps() {
+  if (!fs.existsSync(TIMESTAMPS_PATH)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(TIMESTAMPS_PATH, "utf-8"));
+  } catch {
+    return {};
+  }
+}
+
 function getLastUserTime(messages) {
-  // 直接找 system 消息的时间戳
+  const timestamps = loadTimestamps();
   const reversed = [...messages].reverse();
+  
+  // 从最后一条开始找 user 消息
   for (const msg of reversed) {
-    if (msg.role === "system") {
+    if (msg.role === "user") {
       const content = normalizeContentToText(msg.content);
+      // 先从记忆库查
+      if (timestamps[content]) {
+        return new Date(timestamps[content]);
+      }
+      // 记忆库没有，再从内容里解析
       const parsed = parseTimelineTimestamp(content);
       if (parsed) return parsed;
     }
