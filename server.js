@@ -830,8 +830,8 @@ function basicAuth(req, reply, done) {
 app.get("/admin", { preHandler: basicAuth }, async (req, reply) => {
   const serverUptime = Math.floor(process.uptime());
   const wakeUpStatus = wakeUpLastHeartbeat
-    ? `在线（上次心跳: ${new Date(wakeUpLastHeartbeat).toLocaleString("zh-CN")}）`
-    : "离线或未启动";
+   ? `在线（上次心跳: ${new Date(wakeUpLastHeartbeat).toLocaleString("zh-CN", { timeZone: process.env.TIME_ZONE || "Asia/Shanghai" })}）`
+   : "离线或未启动";
 
   const currentUrl = readEnvValue("TARGET_API_URL");
   const currentModel = readEnvValue("MODEL_NAME");
@@ -858,7 +858,7 @@ app.get("/admin", { preHandler: basicAuth }, async (req, reply) => {
       <details class="diary-entry">
         <summary>
           <span>${escapeHtml(entry.name)}</span>
-          <em>${escapeHtml(new Date(entry.updated_at).toLocaleString("zh-CN"))}</em>
+          <em>${escapeHtml(new Date(entry.updated_at).toLocaleString("zh-CN", { timeZone: process.env.TIME_ZONE || "Asia/Shanghai" }))}</em>
         </summary>
         <pre>${escapeHtml(entry.content)}</pre>
       </details>
