@@ -440,9 +440,6 @@ async function runWakeUp() {
 
   const now = new Date();
   const diffMinutes = Math.floor((now - lastUserTime) / 1000 / 60);
-    console.log(`最后用户时间: ${lastUserTime.toISOString()}`);
-    console.log(`当前时间: ${now.toISOString()}`);
-    console.log(`距离上次: ${diffMinutes} 分钟`);
 
   if (!shouldWake(lastUserTime)) {
     console.log("\n暂不需要唤醒\n");
