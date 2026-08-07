@@ -345,7 +345,7 @@ function parseTimelineTimestamp(value) {
     const text = String(value || "");
     const match = text.match(/（?\s*(\d{4})([-/])(\d{1,2})\2(\d{1,2})(?:[ T]?)(\d{1,2})[:：](\d{2})/);
     if (!match) return null;
-    const [, , yyyy, , month, day, hour, minute] = match;
+    const [, yyyy, , month, day, hour, minute] = match;
     const naive = new Date(Number(yyyy), Number(month)-1, Number(day), Number(hour), Number(minute), 0);
     const fmt = new Intl.DateTimeFormat("en-US", {
         timeZone: TIME_ZONE, year:"numeric", month:"2-digit", day:"2-digit",
