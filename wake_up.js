@@ -345,19 +345,20 @@ function parseTimelineTimestamp(value) {
     const text = String(value || "");
     const match = text.match(/（?\s*(\d{4})([-/])(\d{1,2})\2(\d{1,2})(?:[ T]?)(\d{1,2})[:：](\d{2})/);
     if (!match) return null;
-    const [, yyyy, , month, day, hour, minute] = match;
-    const timeStr = `${yyyy}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}T${String(hour).padStart(2,"0")}:${String(minute).padStart(2,"0")}:00`;
-    // 按 TIME_ZONE 解析：把该时区的"墙上时间"转成 UTC 时间戳
-    const zoned = new Date(timeStr);
-    // 用 Intl 求出该时区偏移
+    const [, , yyyy, , month, , day, hour, minute] = match;
+    const naive = new Date(Number(yyyy), Number(month)-1, Number(day), Number(hour), Number(minute), 0);
     const fmt = new Intl.DateTimeFormat("en-US", {
         timeZone: TIME_ZONE, year:"numeric", month:"2-digit", day:"2-digit",
         hour:"2-digit", minute:"2-digit", second:"2-digit", hourCycle:"h23"
     });
-    const parts = Object.fromEntries(fmt.formatToParts(zoned).map(p => [p.type, p.value]));
-    const utcMs = Date.UTC(Number(parts.year), Number(parts.month)-1, Number(parts.day),
-                           Number(parts.hour), Number(parts.minute), Number(parts.second));
-    const result = new Date(utcMs);
+    const parts = Object.fromEntries(fmt.formatToParts(naive).map(p => [p.type, p.value]));
+    const naiveUtc = Date.UTC(naive.getUTCFullYear(), naive.getUTCMonth(), naive.getUTCDate(),
+                              naive.getUTCHours(), naive.getUTCMinutes());
+    const wall = Date.UTC(Number(parts.year), Number(parts.month)-1, Number(parts.day),
+                          Number(parts.hour), Number(parts.minute));
+    const offsetMs = wall - naiveUtc;
+    const wallTimeMs = Date.UTC(Number(yyyy), Number(month)-1, Number(day), Number(hour), Number(minute));
+    const result = new Date(wallTimeMs - offsetMs);
     return Number.isNaN(result.getTime()) ? null : result;
 }
 
@@ -439,6 +440,9 @@ async function runWakeUp() {
 
   const now = new Date();
   const diffMinutes = Math.floor((now - lastUserTime) / 1000 / 60);
+    console.log(`最后用户时间: ${lastUserTime.toISOString()}`);
+    console.log(`当前时间: ${now.toISOString()}`);
+    console.log(`距离上次: ${diffMinutes} 分钟`);
 
   if (!shouldWake(lastUserTime)) {
     console.log("\n暂不需要唤醒\n");
