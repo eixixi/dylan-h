@@ -3,7 +3,10 @@ const fs = require("fs");
 const path = require("path");
 const { buildNtfyPayload } = require("./ntfy_priority");
 
-const TIMELINE_PATH = path.join(__dirname, "enhanced_messages.json");
+// 批注 2026-08-16：改用 process.cwd() 而非 __dirname，避免 Railway 等平台
+// 用 & 后台启动子进程时 __dirname 解析到错误目录导致读不到时间线。
+const BASE_DIR = process.cwd();
+const TIMELINE_PATH = path.join(BASE_DIR, "enhanced_messages.json");
 const PORT = Number(process.env.PORT) || 3000;
 const GATEWAY_BASE_URL = (process.env.GATEWAY_BASE_URL || `http://localhost:${PORT}`).replace(/\/+$/, "");
 const GATEWAY_URL = `${GATEWAY_BASE_URL}/internal/wake-event`;
@@ -13,7 +16,12 @@ const WEATHER_TIMEOUT_MS = 5000;
 const DIARY_DIR_NAME = process.env.DIARY_DIR || "diary";
 const DIARY_DIR_PATH = path.isAbsolute(DIARY_DIR_NAME)
   ? DIARY_DIR_NAME
-  : path.join(__dirname, DIARY_DIR_NAME);
+  : path.join(BASE_DIR, DIARY_DIR_NAME);
+
+console.log(`[wake_up] BASE_DIR=${BASE_DIR}`);
+console.log(`[wake_up] TIMELINE_PATH=${TIMELINE_PATH}`);
+console.log(`[wake_up] __dirname=${__dirname}`);
+console.log(`[wake_up] DIARY_DIR_PATH=${DIARY_DIR_PATH}`);
 
 function readNumberEnv(key, fallback, options = {}) {
   const value = Number(process.env[key]);
@@ -299,7 +307,7 @@ async function fetchWeatherContext() {
 
 function loadTimelineMessages() {
   if (!fs.existsSync(TIMELINE_PATH)) {
-    console.log("未找到 enhanced_messages.json");
+    console.log(`未找到 enhanced_messages.json（路径: ${TIMELINE_PATH}）`);
     return null;
   }
 
@@ -362,7 +370,7 @@ function parseTimelineTimestamp(value) {
     return Number.isNaN(result.getTime()) ? null : result;
 }
 
-const TIMESTAMPS_PATH = path.join(__dirname, "message_timestamps.json");
+const TIMESTAMPS_PATH = path.join(BASE_DIR, "message_timestamps.json");
 
 function getLastUserTime(messages) {
   const reversed = [...messages].reverse();
@@ -385,7 +393,7 @@ function stripPosition(messages) {
 
 function buildWakePrompt(currentTime, diffMinutes, weatherContext = "") {
   // 优先读取独立的提示词文件（推荐方式）
-  const promptFile = path.join(__dirname, "wake_prompt.txt");
+  const promptFile = path.join(BASE_DIR, "wake_prompt.txt");
   if (fs.existsSync(promptFile)) {
     const template = fs.readFileSync(promptFile, "utf-8");
     return template
