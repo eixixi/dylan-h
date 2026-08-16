@@ -372,16 +372,50 @@ function parseTimelineTimestamp(value) {
 
 const TIMESTAMPS_PATH = path.join(BASE_DIR, "message_timestamps.json");
 
+// 批注 2026-08-16：过滤掉记忆提取/系统注入的 user 消息，它们没有真实用户时间戳，
+// 会污染时间线导致 wake-up 误判。遇到这类消息直接跳过。
+function isSystemInjectedMessage(content) {
+  const text = String(content || "");
+  return (
+    text.includes("<gate>") ||
+    text.includes("user_memory") ||
+    text.includes("记忆提取") ||
+    text.includes("判断其中是否包含值得长期记忆") ||
+    text.includes("分析以下对话") ||
+    text.includes("<memories>")
+  );
+}
+
+// 批注 2026-08-16：找不到有效用户时间戳时，回退用时间线文件的修改时间（mtime），
+// 避免多窗口共用同一文件时因全是系统注入消息而返回 null，导致 wake-up 直接退出。
+function getTimelineMtimeFallback() {
+  try {
+    if (fs.existsSync(TIMELINE_PATH)) {
+      const stat = fs.statSync(TIMELINE_PATH);
+      if (stat && stat.mtime) return new Date(stat.mtime);
+    }
+  } catch (err) {
+    console.error("读取时间线文件 mtime 失败:", err.message);
+  }
+  return null;
+}
+
 function getLastUserTime(messages) {
   const reversed = [...messages].reverse();
   for (const msg of reversed) {
     if (msg.role === "user") {
       const content = normalizeContentToText(msg.content);
-      // 批注 2026-07-15：兼容 Kelivo 时间前缀 "YYYY-MM-DDHH:mm"；
-      // 旧的 "YYYY-MM-DD HH:mm" 仍然可用，避免无空格时间导致 wake-up 误判没有用户时间。
+      // 跳过系统注入的记忆提取消息
+      if (isSystemInjectedMessage(content)) continue;
       const parsed = parseTimelineTimestamp(content);
       if (parsed) return parsed;
     }
+  }
+  // 回退：用文件修改时间兜底，绝不返回 null
+  const fallback = getTimelineMtimeFallback();
+  if (fallback) {
+    console.log(`未找到有效用户时间戳，回退使用时间线文件修改时间：${fallback.toISOString()}`);
+    return fallback;
   }
   return null;
 }
